@@ -1,0 +1,6 @@
+# Copie este archivo como terraform.tfvars y complete el ID del proyecto.
+# terraform.tfvars NO se sube a Git (esta en .gitignore).
+project_id     = "ID-DEL-PROYECTO-DE-GCP"
+region         = "us-central1"
+zona           = "us-central1-a"
+nombre_cluster = "holdovers-gke"
