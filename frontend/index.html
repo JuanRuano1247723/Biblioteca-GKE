@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Biblioteca · Holdovers</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/app.js" defer></script>
+</head>
+<body>
+
+  <main class="wrap">
+
+    <header class="site-header">
+      <h1>Biblioteca</h1>
+      <div class="meta">
+        <span class="badge">Caso 04</span><br>
+        Equipo holdovers · GKE<br>
+        Virtualización · 2026
+      </div>
+    </header>
+
+    <section class="panel" aria-labelledby="titulo-integrantes">
+      <div class="panel-head">
+        <span class="idx">01</span>
+        <h2 id="titulo-integrantes">Integrantes</h2>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Carné</th><th>Nombre</th></tr></thead>
+          <tbody id="integrantes"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="titulo-ejemplares">
+      <div class="panel-head">
+        <span class="idx">02</span>
+        <h2 id="titulo-ejemplares">Ejemplares</h2>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Título</th><th>Autor</th><th>Año</th><th>Acciones</th></tr></thead>
+          <tbody id="ejemplares"></tbody>
+        </table>
+      </div>
+      <form id="form-ejemplar">
+        <input name="titulo" placeholder="Título" required>
+        <input name="autor" placeholder="Autor" required>
+        <input name="anio" type="number" placeholder="Año">
+        <button type="submit">Agregar ejemplar</button>
+      </form>
+    </section>
+
+    <section class="panel" aria-labelledby="titulo-prestamos">
+      <div class="panel-head">
+        <span class="idx">03</span>
+        <h2 id="titulo-prestamos">Préstamos</h2>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Ejemplar</th><th>Prestatario</th><th>Préstamo</th><th>Devolución</th><th>Acciones</th></tr></thead>
+          <tbody id="prestamos"></tbody>
+        </table>
+      </div>
+      <form id="form-prestamo">
+        <select name="ejemplar_id" id="select-ejemplar" required></select>
+        <input name="prestatario" placeholder="Prestatario" required>
+        <button type="submit">Registrar préstamo</button>
+      </form>
+    </section>
+
+    <div id="error" class="error" role="alert"></div>
+
+    <footer class="site-footer">
+      <span>Biblioteca · Holdovers</span>
+      <span>Frontend · nginx · PostgreSQL</span>
+    </footer>
+
+  </main>
+</body>
+</html>
