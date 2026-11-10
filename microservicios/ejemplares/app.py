@@ -8,11 +8,11 @@ app = Flask(__name__)
 
 def get_db_connection():
   conn = psycopg.connect(
-      host=DB_HOST,
-      dbname=DB_NAME,
-      user=DB_USER,
-      password=DB_PASSWORD,
-      port=DB_PORT,
+      host=os.environ.get('DB_HOST', 'localhost'),
+      dbname=os.environ.get('DB_NAME', 'biblioteca'),
+      user=os.environ.get('DB_USER', 'postgres'),
+      password=os.environ.get('DB_PASSWORD', 'password'),
+      port=int(os.environ.get('DB_PORT', 5432)),
       row_factory=dict_row,
   )
   return conn
@@ -173,4 +173,4 @@ def eliminar_ejemplar(id):
 
 if __name__ == "__main__":
   init_db()
-  app.run(host="0.0.0.0", port=5001) 
+  app.run(host="0.0.0.0", port=5000)
