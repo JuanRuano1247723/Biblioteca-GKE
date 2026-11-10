@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: holdovers
+spec:
+  replicas: 1                  # luego lo cambias a 3 en el YAML (F1)
+  selector:
+    matchLabels: { app: frontend }
+  template:
+    metadata:
+      labels: { app: frontend }
+    spec:
+      containers:
+        - name: frontend
+          image: us-central1-docker.pkg.dev/virtualizacion-1149123-1186023/holdovers/frontend:v1
+          ports:
+            - containerPort: <puerto>
+          envFrom:
+            - configMapRef: { name: biblioteca-config }
+            - secretRef:    { name: biblioteca-secret }
+          readinessProbe:
+            httpGet: { path: <ruta de salud>, port: <puerto> }
+          resources:
+            requests: { cpu: 25m, memory: 64Mi }
+            limits:   { memory: 256Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-svc
+  namespace: holdovers
+spec:
+  type: LoadBalancer
+  selector: { app: frontend }
+  ports:
+    - port: 80
+      targetPort: <puerto>
