@@ -1,0 +1,45 @@
+# Frontend: Deployment y Service LoadBalancer (IP publica).
+# Reemplazar PROYECTO_ID por el ID real del proyecto de Google Cloud.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: holdovers
+  labels:
+    app: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: us-central1-docker.pkg.dev/PROYECTO_ID/holdovers/frontend:v1
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-svc
+  namespace: holdovers
+spec:
+  type: LoadBalancer
+  selector:
+    app: frontend
+  ports:
+    - port: 80
+      targetPort: 80

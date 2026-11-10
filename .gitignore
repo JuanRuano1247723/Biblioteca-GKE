@@ -6,5 +6,9 @@
 tfplan
 terraform.tfvars
 crash.log
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
 
 # Se SI versiona .terraform.lock.hcl
