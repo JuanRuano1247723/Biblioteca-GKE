@@ -5,13 +5,6 @@ from psycopg.rows import dict_row
 
 app = Flask(__name__)
 
-# Configuración de la base de datos obtenida mediante variables de entorno
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_NAME = os.getenv("DB_NAME", "biblioteca_db")
-DB_USER = os.getenv("DB_USER", "postgres")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
-DB_PORT = os.getenv("DB_PORT", "5432")
-
 
 def get_db_connection():
   conn = psycopg.connect(
