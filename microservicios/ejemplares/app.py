@@ -1,176 +1,129 @@
 import os
-from flask import Flask, jsonify, request
+
 import psycopg
+from flask import Flask, jsonify, request
+from psycopg import errors
 from psycopg.rows import dict_row
 
 app = Flask(__name__)
 
 
 def get_db_connection():
-  conn = psycopg.connect(
-      host=os.environ.get('DB_HOST', 'localhost'),
-      dbname=os.environ.get('DB_NAME', 'biblioteca'),
-      user=os.environ.get('DB_USER', 'postgres'),
-      password=os.environ.get('DB_PASSWORD', 'password'),
-      port=int(os.environ.get('DB_PORT', 5432)),
-      row_factory=dict_row,
-  )
-  return conn
+    return psycopg.connect(
+        host=os.environ["DB_HOST"],
+        port=int(os.environ.get("DB_PORT", 5432)),
+        dbname=os.environ["DB_NAME"],
+        user=os.environ["DB_USER"],
+        password=os.environ["DB_PASSWORD"],
+        connect_timeout=5,
+        row_factory=dict_row,
+    )
 
 
-# Inicializar la tabla de Ejemplares si no existe
-def init_db():
-  try:
-    with get_db_connection() as conn:
-      with conn.cursor() as cur:
-        cur.execute("""
-                    CREATE TABLE IF NOT EXISTS ejemplares (
-                        id SERIAL PRIMARY KEY,
-                        isbn VARCHAR(50) UNIQUE NOT NULL,
-                        titulo VARCHAR(150) NOT NULL,
-                        autor VARCHAR(100) NOT NULL,
-                        editorial VARCHAR(100),
-                        stock INT NOT NULL DEFAULT 1
-                    );
-                """)
-      conn.commit()
-  except Exception as e:
-    print(f"Error al conectar/inicializar la base de datos: {e}")
+def error(msg, code):
+    return jsonify({"error": msg}), code
 
 
+def leer_json():
+    data = request.get_json(silent=True)
+    return data if isinstance(data, dict) else {}
+
+
+def validar(data, parcial=False):
+    """Devuelve (titulo, autor, anio, mensaje_error)."""
+    titulo = (data.get("titulo") or "").strip() if isinstance(data.get("titulo"), str) else None
+    autor = (data.get("autor") or "").strip() if isinstance(data.get("autor"), str) else None
+    if not titulo or not autor:
+        return None, None, None, "Los campos titulo y autor son obligatorios"
+    anio = data.get("anio")
+    if anio is not None and (isinstance(anio, bool) or not isinstance(anio, int)):
+        return None, None, None, "El campo anio debe ser un entero"
+    return titulo, autor, anio, None
+
+
+@app.errorhandler(psycopg.OperationalError)
+def db_down(e):
+    return error("Base de datos no disponible", 503)
+
+
+@app.errorhandler(404)
+def no_encontrada(e):
+    return error("Ruta no encontrada", 404)
+
+
+@app.route("/healthz", methods=["GET"])
 @app.route("/health", methods=["GET"])
-def health_check():
-  try:
-    with get_db_connection() as conn:
-      pass
-    return jsonify({"status": "healthy", "database": "connected"}), 200
-  except Exception as e:
-    return (
-        jsonify({"status": "unhealthy", "error": str(e)}),
-        500,
-    )
+def healthz():
+    return jsonify({"status": "ok"}), 200
 
 
-# 1. CREAR un ejemplar (POST)
-@app.route("/ejemplares", methods=["POST"])
-def crear_ejemplar():
-  data = request.get_json()
-  isbn = data.get("isbn")
-  titulo = data.get("titulo")
-  autor = data.get("autor")
-  editorial = data.get("editorial")
-  stock = data.get("stock", 1)
+# ---------- Integrantes (solo lectura) ----------
+@app.route("/api/integrantes", methods=["GET"])
+def integrantes():
+    with get_db_connection() as conn, conn.cursor() as cur:
+        cur.execute("SELECT carne, nombre FROM integrantes ORDER BY nombre")
+        return jsonify(cur.fetchall()), 200
 
-  if not isbn or not titulo or not autor:
-    return (
-        jsonify(
-            {"error": "Los campos isbn, titulo y autor son obligatorios"}
-        ),
-        400,
-    )
 
-  try:
-    with get_db_connection() as conn:
-      with conn.cursor() as cur:
+# ---------- Ejemplares (CRUD) ----------
+@app.route("/api/ejemplares", methods=["POST"])
+def crear():
+    titulo, autor, anio, msg = validar(leer_json())
+    if msg:
+        return error(msg, 400)
+    with get_db_connection() as conn, conn.cursor() as cur:
         cur.execute(
-            """
-                    INSERT INTO ejemplares (isbn, titulo, autor, editorial, stock) 
-                    VALUES (%s, %s, %s, %s, %s) RETURNING id, isbn, titulo, autor, editorial, stock;
-                """,
-            (isbn, titulo, autor, editorial, stock),
+            "INSERT INTO ejemplares (titulo, autor, anio) VALUES (%s, %s, %s) RETURNING *",
+            (titulo, autor, anio),
         )
-        nuevo = cur.fetchone()
-      conn.commit()
-
-    return jsonify(nuevo), 201
-  except Exception as e:
-    return jsonify({"error": str(e)}), 500
+        return jsonify(cur.fetchone()), 201
 
 
-# 2. CONSULTAR todos los ejemplares (GET)
-@app.route("/ejemplares", methods=["GET"])
-def obtener_ejemplares():
-  try:
-    with get_db_connection() as conn:
-      with conn.cursor() as cur:
-        cur.execute("SELECT * FROM ejemplares ORDER BY id ASC;")
-        ejemplares = cur.fetchall()
-    return jsonify(ejemplares), 200
-  except Exception as e:
-    return jsonify({"error": str(e)}), 500
+@app.route("/api/ejemplares", methods=["GET"])
+def listar():
+    with get_db_connection() as conn, conn.cursor() as cur:
+        cur.execute("SELECT * FROM ejemplares ORDER BY id")
+        return jsonify(cur.fetchall()), 200
 
 
-# 2.1 CONSULTAR un ejemplar por ID (GET)
-@app.route("/ejemplares/<int:id>", methods=["GET"])
-def obtener_ejemplar_por_id(id):
-  try:
-    with get_db_connection() as conn:
-      with conn.cursor() as cur:
-        cur.execute("SELECT * FROM ejemplares WHERE id = %s;", (id,))
-        ejemplar = cur.fetchone()
-
-    if not ejemplar:
-      return jsonify({"error": "Ejemplar no encontrado"}), 404
-
-    return jsonify(ejemplar), 200
-  except Exception as e:
-    return jsonify({"error": str(e)}), 500
+@app.route("/api/ejemplares/<int:id>", methods=["GET"])
+def obtener(id):
+    with get_db_connection() as conn, conn.cursor() as cur:
+        cur.execute("SELECT * FROM ejemplares WHERE id = %s", (id,))
+        fila = cur.fetchone()
+    if fila is None:
+        return error("Ejemplar no encontrado", 404)
+    return jsonify(fila), 200
 
 
-# 3. ACTUALIZAR un ejemplar (PUT)
-@app.route("/ejemplares/<int:id>", methods=["PUT"])
-def actualizar_ejemplar(id):
-  data = request.get_json()
-  isbn = data.get("isbn")
-  titulo = data.get("titulo")
-  autor = data.get("autor")
-  editorial = data.get("editorial")
-  stock = data.get("stock")
-
-  try:
-    with get_db_connection() as conn:
-      with conn.cursor() as cur:
+@app.route("/api/ejemplares/<int:id>", methods=["PUT"])
+def actualizar(id):
+    titulo, autor, anio, msg = validar(leer_json())
+    if msg:
+        return error(msg, 400)
+    with get_db_connection() as conn, conn.cursor() as cur:
         cur.execute(
-            """
-                    UPDATE ejemplares 
-                    SET isbn = COALESCE(%s, isbn), 
-                        titulo = COALESCE(%s, titulo), 
-                        autor = COALESCE(%s, autor), 
-                        editorial = COALESCE(%s, editorial), 
-                        stock = COALESCE(%s, stock)
-                    WHERE id = %s RETURNING *;
-                """,
-            (isbn, titulo, autor, editorial, stock, id),
+            "UPDATE ejemplares SET titulo = %s, autor = %s, anio = %s WHERE id = %s RETURNING *",
+            (titulo, autor, anio, id),
         )
-        actualizado = cur.fetchone()
-      conn.commit()
-
-    if not actualizado:
-      return jsonify({"error": "Ejemplar no encontrado"}), 404
-
-    return jsonify(actualizado), 200
-  except Exception as e:
-    return jsonify({"error": str(e)}), 500
+        fila = cur.fetchone()
+    if fila is None:
+        return error("Ejemplar no encontrado", 404)
+    return jsonify(fila), 200
 
 
-# 4. ELIMINAR un ejemplar (DELETE)
-@app.route("/ejemplares/<int:id>", methods=["DELETE"])
-def eliminar_ejemplar(id):
-  try:
-    with get_db_connection() as conn:
-      with conn.cursor() as cur:
-        cur.execute("DELETE FROM ejemplares WHERE id = %s RETURNING id;", (id,))
-        eliminado = cur.fetchone()
-      conn.commit()
-
-    if not eliminado:
-      return jsonify({"error": "Ejemplar no encontrado"}), 404
-
-    return jsonify({"mensaje": f"Ejemplar con id {id} eliminado correctamente"}), 200
-  except Exception as e:
-    return jsonify({"error": str(e)}), 500
+@app.route("/api/ejemplares/<int:id>", methods=["DELETE"])
+def eliminar(id):
+    try:
+        with get_db_connection() as conn, conn.cursor() as cur:
+            cur.execute("DELETE FROM ejemplares WHERE id = %s RETURNING id", (id,))
+            fila = cur.fetchone()
+    except errors.ForeignKeyViolation:
+        return error("No se puede eliminar: el ejemplar tiene préstamos", 409)
+    if fila is None:
+        return error("Ejemplar no encontrado", 404)
+    return "", 204
 
 
 if __name__ == "__main__":
-  init_db()
-  app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=8000)
