@@ -3,27 +3,41 @@ kind: Deployment
 metadata:
   name: ejemplares
   namespace: holdovers
+  labels:
+    app: ejemplares
 spec:
-  replicas: 1                  # luego lo cambias a 3 en el YAML (F1)
+  replicas: 1
   selector:
-    matchLabels: { app: ejemplares }
+    matchLabels:
+      app: ejemplares
   template:
     metadata:
-      labels: { app: ejemplares }
+      labels:
+        app: ejemplares
     spec:
       containers:
         - name: ejemplares
           image: us-central1-docker.pkg.dev/virtualizacion-1149123-1186023/holdovers/ejemplares:v1
+          imagePullPolicy: Always
           ports:
-            - containerPort: <puerto>
+            - containerPort: 5000
           envFrom:
-            - configMapRef: { name: biblioteca-config }
-            - secretRef:    { name: biblioteca-secret }
+            - configMapRef:
+                name: app-config
+            - secretRef:
+                name: db-credenciales
           readinessProbe:
-            httpGet: { path: <ruta de salud>, port: <puerto> }
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 5
           resources:
-            requests: { cpu: 25m, memory: 64Mi }
-            limits:   { memory: 256Mi }
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
 ---
 apiVersion: v1
 kind: Service
@@ -31,7 +45,8 @@ metadata:
   name: ejemplares-svc
   namespace: holdovers
 spec:
-  selector: { app: ejemplares }
+  selector:
+    app: ejemplares
   ports:
-    - port: <puerto>
-      targetPort: <puerto>
+    - port: 5000
+      targetPort: 5000

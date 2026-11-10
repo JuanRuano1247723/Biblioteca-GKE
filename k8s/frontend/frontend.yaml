@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: us-central1-docker.pkg.dev/PROYECTO_ID/holdovers/frontend:v1
+          image: us-central1-docker.pkg.dev/virtualizacion-1149123-1186023/holdovers/frontend:v1
           imagePullPolicy: Always
           ports:
             - containerPort: 80

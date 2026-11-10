@@ -34,7 +34,7 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: us-central1-docker.pkg.dev/PROYECTO_ID/holdovers/postgres:16
+          image: us-central1-docker.pkg.dev/virtualizacion-1149123-1186023/holdovers/postgres:16
           imagePullPolicy: Always
           ports:
             - containerPort: 5432

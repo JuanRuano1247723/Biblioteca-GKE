@@ -4,7 +4,6 @@ metadata:
   name: biblioteca-config
   namespace: holdovers
 data:
-  DB_HOST: "db-svc"
+  DB_HOST: "postgres"
   DB_PORT: "5432"
   DB_NAME: "biblioteca"
-  EJEMPLARES_URL: "http://ejemplares-svc:<puerto>"   # para que préstamos valide ejemplares
