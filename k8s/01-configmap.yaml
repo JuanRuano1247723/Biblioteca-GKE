@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: biblioteca-config
+  name: app-config
   namespace: holdovers
 data:
   DB_HOST: "postgres"
