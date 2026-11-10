@@ -20,7 +20,7 @@ spec:
           image: us-central1-docker.pkg.dev/virtualizacion-1149123-1186023/holdovers/ejemplares:v1
           imagePullPolicy: Always
           ports:
-            - containerPort: 5000
+            - containerPort: 8000
           envFrom:
             - configMapRef:
                 name: app-config
@@ -28,8 +28,8 @@ spec:
                 name: db-credenciales
           readinessProbe:
             httpGet:
-              path: /health
-              port: 5000
+              path: /healthz
+              port: 8000
             initialDelaySeconds: 5
             periodSeconds: 5
           resources:
